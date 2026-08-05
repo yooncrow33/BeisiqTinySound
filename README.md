@@ -1,5 +1,16 @@
 About
 -----
+This is a repository for forking, modifying, and managing Finn Kuusisto’s projects
+
+Unlike the original project, this version uses Unsafe for off-heap memory management, requiring manual memory handling for MemSound and MemMusic.
+VM Crash: Calling free while audio is actively playing will crash the JVM (similar to C/C++ memory errors).
+Memory Leak: Failing to call free when finished will cause memory leaks.
+This implementation may be unstable depending on usage. Since the import structures and APIs remain completely identical to the original, please consider using the original repository if you encounter stability issues.
+
+Special thanks to Finn Kuusisto for the original project!
+
+Original contents
+-----
 TinySound is a simple sound system that wraps the standard Java sound libraries.
 It is "tiny" in that it is intended to have a small, easy-to-use interface with
 everything that you need to play sounds and music, and nothing that you don't.
