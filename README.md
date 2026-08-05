@@ -7,7 +7,7 @@ VM Crash: Calling free while audio is actively playing will crash the JVM (simil
 Memory Leak: Failing to call free when finished will cause memory leaks.
 This implementation may be unstable depending on usage. Since the import structures and APIs remain completely identical to the original, please consider using the original repository if you encounter stability issues.
 
-Special thanks to Finn Kuusisto for the original project!
+Special thanks to @finnkuusisto for the original project!
 
 Original contents
 -----
