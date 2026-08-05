@@ -117,7 +117,7 @@ public class StreamSound implements Sound {
 	 * StreamSound after unloading will result in error.
 	 */
 	@Override
-	public void unload() {
+	public void free() {
 		this.mixer.unRegisterSoundReference(this.ID);
 		this.mixer = null;
 		this.dataURL = null;

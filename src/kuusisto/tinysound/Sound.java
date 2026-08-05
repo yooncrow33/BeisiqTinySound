@@ -65,6 +65,6 @@ public interface Sound {
 	 * Unloads this Sound from the system.  Attempts to use this Sound after
 	 * unloading will result in error.
 	 */
-	public void unload();
+	public void free();
 	
 }

@@ -45,12 +45,9 @@ import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import kuusisto.tinysound.internal.ByteList;
-import kuusisto.tinysound.internal.MemMusic;
-import kuusisto.tinysound.internal.MemSound;
 import kuusisto.tinysound.internal.Mixer;
 import kuusisto.tinysound.internal.StreamInfo;
 import kuusisto.tinysound.internal.StreamMusic;
-import kuusisto.tinysound.internal.StreamSound;
 import kuusisto.tinysound.internal.UpdateRunner;
 
 /**
@@ -63,7 +60,7 @@ import kuusisto.tinysound.internal.UpdateRunner;
  */
 public class TinySound {
 	
-	public static final String VERSION = "1.1.1";
+	public static final String VERSION = "CM 0.7.0";
 
 	/**
 	 * The internal format used by TinySound.
@@ -79,7 +76,7 @@ public class TinySound {
 			);
 	
 	//the system has only one mixer for both music and sounds
-	private static Mixer mixer;
+	public static Mixer mixer;
 	//need a line to the speakers
 	private static SourceDataLine outLine;
 	//see if the system has been initialized
@@ -316,12 +313,9 @@ public class TinySound {
 		if (url == null) {
 			return null;
 		}
-		//get a valid stream of audio data
-		AudioInputStream audioStream = TinySound.getValidAudioStream(url);
-		//check for failure
-		if (audioStream == null) {
-			return null;
-		}
+        AudioInputStream audioStream = TinySound.getValidAudioStream(url);
+        if (audioStream == null) return null;
+
 		//try to read all the bytes
 		byte[][] data = TinySound.readAllBytes(audioStream);
 		//check for failure
@@ -346,28 +340,22 @@ public class TinySound {
 			return sm;
 		}
 		//construct the Music object and register it with the mixer
-		return new MemMusic(data[0], data[1], TinySound.mixer);
+        try {
+            return Main.loadMemMusicDirectly(audioStream);
+        } catch (Exception e) {
+            System.err.println("Failed to load music directly to Off-Heap: " + e.getMessage());
+            return null;
+        }
 	}
-	
-	/**
-	 * Load a Sound by a resource name.  The resource must be on the classpath
-	 * for this to work.  This will store audio data in memory.
-	 * @param name name of the Sound resource
-	 * @return Sound resource as specified, null if not found/loaded
-	 */
-	public static Sound loadSound(String name) {
-		return TinySound.loadSound(name, false);
-	}
-	
+
 	/**
 	 * Load a Sound by a resource name.  The resource must be on the classpath
 	 * for this to work.
 	 * @param name name of the Sound resource
-	 * @param streamFromFile true if this Music should be streamed from a
 	 * temporary file to reduce memory overhead
 	 * @return Sound resource as specified, null if not found/loaded
 	 */
-	public static Sound loadSound(String name, boolean streamFromFile) {
+	public static Sound loadSound(String name) {
 		//check if the system is initialized
 		if (!TinySound.inited) {
 			System.err.println("TinySound not initialized!");
@@ -387,27 +375,17 @@ public class TinySound {
 			System.err.println("Unable to find resource " + name + "!");
 			return null;
 		}
-		return TinySound.loadSound(url, streamFromFile);
+		return TinySound.loadSound(url);
 
-	}
-	
-	/**
-	 * Load a Sound by a File.  This will store audio data in memory.
-	 * @param file the Sound file to load
-	 * @return Sound from file as specified, null if not found/loaded
-	 */
-	public static Sound loadSound(File file) {
-		return TinySound.loadSound(file, false);
 	}
 	
 	/**
 	 * Load a Sound by a File.
 	 * @param file the Sound file to load
-	 * @param streamFromFile true if this Music should be streamed from a
 	 * temporary file to reduce memory overhead
 	 * @return Sound from file as specified, null if not found/loaded
 	 */
-	public static Sound loadSound(File file, boolean streamFromFile) {
+	public static Sound loadSound(File file) {
 		//check if the system is initialized
 		if (!TinySound.inited) {
 			System.err.println("TinySound not initialized!");
@@ -424,70 +402,40 @@ public class TinySound {
 			System.err.println("Unable to find file " + file + "!");
 			return null;
 		}
-		return TinySound.loadSound(url, streamFromFile);
+		return TinySound.loadSound(url);
 	}
-	
-	/**
-	 * Load a Sound by a URL.  This will store audio data in memory.
-	 * @param url the URL of the Sound
-	 * @return Sound from URL as specified, null if not found/loaded
-	 */
-	public static Sound loadSound(URL url) {
-		return TinySound.loadSound(url, false);
-	}
-	
-	/**
-	 * Load a Sound by a URL.  This will store audio data in memory.
-	 * @param url the URL of the Sound
-	 * @param streamFromFile true if this Music should be streamed from a
-	 * temporary file to reduce memory overhead
-	 * @return Sound from URL as specified, null if not found/loaded
-	 */
-	public static Sound loadSound(URL url, boolean streamFromFile) {
-		//check if the system is initialized
-		if (!TinySound.inited) {
-			System.err.println("TinySound not initialized!");
-			return null;
-		}
-		//check for failure
-		if (url == null) {
-			return null;
-		}
-		//get a valid stream of audio data
-		AudioInputStream audioStream = TinySound.getValidAudioStream(url);
-		//check for failure
-		if (audioStream == null) {
-			return null;
-		}
-		//try to read all the bytes
-		byte[][] data = TinySound.readAllBytes(audioStream);
-		//check for failure
-		if (data == null) {
-			return null;
-		}
-		//handle differently if streaming from file
-		if (streamFromFile) {
-			StreamInfo info = TinySound.createFileStream(data);
-			//check for failure
-			if (info == null) {
-				return null;
-			}
-			//try to create it
-			StreamSound ss = null;
-			try {
-				ss = new StreamSound(info.URL, info.NUM_BYTES_PER_CHANNEL,
-						TinySound.mixer, TinySound.soundCount);
-				TinySound.soundCount++;
-			} catch (IOException e) {
-				System.err.println("Failed to create StreamSound!");
-			}
-			return ss;
-		}
-		//construct the Sound object
-		TinySound.soundCount++;
-		return new MemSound(data[0], data[1], TinySound.mixer,
-				TinySound.soundCount);
-	}
+
+    /**
+     * Load a Sound by a URL.  This will store audio data in memory (Off-Heap).
+     * @param url the URL of the Sound
+     * @return Sound from URL as specified, null if not found/loaded
+     */
+    public static Sound loadSound(URL url) {
+        // 1. 시스템 초기화 체크
+        if (!TinySound.inited) {
+            System.err.println("TinySound not initialized!");
+            return null;
+        }
+        if (url == null) {
+            return null;
+        }
+
+        // 2. 유효한 오디오 스트림(16-bit, 2-channel 포맷 변환) 가져오기
+        AudioInputStream audioStream = TinySound.getValidAudioStream(url);
+        if (audioStream == null) {
+            return null;
+        }
+
+        // 3. 다이렉트 오프힙(Off-Heap) 메모리 할당 및 MemSound 객체 반환
+        try {
+            int soundId = TinySound.soundCount++;
+            // byte[][] 변환이나 임시 파일을 거치지 않고 곧바로 파싱합니다.
+            return Main.loadMemSoundDirectly(audioStream, soundId);
+        } catch (Exception e) {
+            System.err.println("Failed to load sound directly to Off-Heap: " + e.getMessage());
+            return null;
+        }
+    }
 	
 	/**
 	 * Reads all of the bytes from an AudioInputStream.
